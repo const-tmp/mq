@@ -30,14 +30,13 @@ func TestService(t *testing.T) {
 	defer cancel()
 	s := New(ctx)
 
-	for i := 0; i < num; i++ {
-		go func(n int) {
-			if v := s.Get(); v != fmt.Sprint(n) {
-				t.Errorf("want %d got %s", n, v)
+	go func() {
+		for i := 0; i < num; i++ {
+			if v := s.Get(); v != fmt.Sprint(i) {
+				t.Errorf("want %d got %s", i, v)
 			}
-		}(i)
-		//time.Sleep(time.Millisecond)
-	}
+		}
+	}()
 
 	for i := 0; i < num; i++ {
 		s.Put(fmt.Sprint(i))
