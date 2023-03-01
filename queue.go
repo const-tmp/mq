@@ -1,31 +1,21 @@
 package queue
 
 import (
-	"context"
 	"sync"
 )
 
 type Service struct {
 	messages            []string
-	appendMessage       chan string
 	readers             []chan string
-	appendReader        chan chan string
 	messageMu, readerMu sync.RWMutex
 }
 
-func New(ctx context.Context) *Service {
-	s := &Service{appendMessage: make(chan string), appendReader: make(chan chan string)}
-	go s.appendReaderLoop(ctx)
-	go s.appendMessageLoop(ctx)
-	return s
-}
-
-func (s *Service) Put(v string) {
+func (s *Service) Put(message string) {
 	if s.readersLen() > 0 {
-		s.popReader() <- v
+		s.popReader() <- message
 		return
 	}
-	s.appendMessage <- v
+	s.appendMessage(message)
 }
 
 func (s *Service) Get() string {
@@ -33,36 +23,20 @@ func (s *Service) Get() string {
 		return s.popMessage()
 	}
 	ch := make(chan string)
-	s.appendReader <- ch
+	s.appendReader(ch)
 	return <-ch
-}
-
-func (s *Service) appendMessageLoop(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case v := <-s.appendMessage:
-			s.messages = append(s.messages, v)
-		}
-	}
-}
-
-func (s *Service) appendReaderLoop(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case v := <-s.appendReader:
-			s.readers = append(s.readers, v)
-		}
-	}
 }
 
 func (s *Service) messagesLen() int {
 	s.messageMu.RLock()
 	defer s.messageMu.RUnlock()
 	return len(s.messages)
+}
+
+func (s *Service) appendMessage(message string) {
+	s.messageMu.Lock()
+	defer s.messageMu.Unlock()
+	s.messages = append(s.messages, message)
 }
 
 func (s *Service) popMessage() string {
@@ -77,6 +51,12 @@ func (s *Service) readersLen() int {
 	s.readerMu.RLock()
 	defer s.readerMu.RUnlock()
 	return len(s.readers)
+}
+
+func (s *Service) appendReader(ch chan string) {
+	s.readerMu.Lock()
+	defer s.readerMu.Unlock()
+	s.readers = append(s.readers, ch)
 }
 
 func (s *Service) popReader() chan string {

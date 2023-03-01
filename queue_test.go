@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"context"
 	"fmt"
 	"testing"
 )
@@ -24,11 +23,10 @@ func send(c chan int, v int) {
 	fmt.Println("send after")
 }
 
-func TestService(t *testing.T) {
-	num := 1000
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	s := New(ctx)
+const num = 100000
+
+func TestServiceGetBefore(t *testing.T) {
+	s := new(Service)
 
 	go func() {
 		for i := 0; i < num; i++ {
@@ -40,5 +38,19 @@ func TestService(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		s.Put(fmt.Sprint(i))
+	}
+}
+
+func TestServiceGetAfter(t *testing.T) {
+	s := new(Service)
+
+	for i := 0; i < num; i++ {
+		s.Put(fmt.Sprint(i))
+	}
+
+	for i := 0; i < num; i++ {
+		if v := s.Get(); v != fmt.Sprint(i) {
+			t.Errorf("want %d got %s", i, v)
+		}
 	}
 }
