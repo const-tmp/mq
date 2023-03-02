@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-const num = 100000
+const num = 1000000
 
 func TestMessageQueueBefore(t *testing.T) {
 	mq := New[int]()

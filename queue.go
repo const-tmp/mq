@@ -11,46 +11,45 @@ var (
 	TimeoutError = errors.New("timeout")
 )
 
-type queue[T comparable] struct {
+type Queue[T any] struct {
 	sync.Mutex
-	slice []T
+	list *List[T]
 }
 
-func (q *queue[T]) push(v T) {
-	q.Lock()
-	q.slice = append(q.slice, v)
-	q.Unlock()
+func NewQueue[T any]() *Queue[T] {
+	return &Queue[T]{list: new(List[T])}
 }
 
-func (q *queue[T]) pop() (v T, ok bool) {
+func (q *Queue[T]) push(v T) *ListItem[T] {
 	q.Lock()
 	defer q.Unlock()
-	if len(q.slice) == 0 {
+	return q.list.Push(v)
+}
+
+func (q *Queue[T]) pop() (v T, ok bool) {
+	q.Lock()
+	defer q.Unlock()
+	if i := q.list.Pop(); i == nil {
+		return
+	} else {
+		v, ok = i.value, true
 		return
 	}
-	v, q.slice = q.slice[0], q.slice[1:]
-	ok = true
-	return
 }
 
-func (q *queue[T]) remove(v T) {
+func (q *Queue[T]) remove(i *ListItem[T]) {
 	q.Lock()
 	defer q.Unlock()
-	for i, t := range q.slice {
-		if t == v {
-			q.slice = append(q.slice[:i], q.slice[i+1:]...)
-			return
-		}
-	}
+	i = i.next
 }
 
-type MessageQueue[T comparable] struct {
-	messages *queue[T]
-	readers  *queue[chan T]
+type MessageQueue[T any] struct {
+	messages *Queue[T]
+	readers  *Queue[chan T]
 }
 
 func New[T comparable]() MessageQueue[T] {
-	return MessageQueue[T]{messages: new(queue[T]), readers: new(queue[chan T])}
+	return MessageQueue[T]{messages: NewQueue[T](), readers: NewQueue[chan T]()}
 }
 
 func (mq MessageQueue[T]) Push(v T) {
@@ -74,10 +73,10 @@ func (mq MessageQueue[T]) Pop(timeout time.Duration) (*T, error) {
 		defer cancel()
 	}
 	ch := make(chan T)
-	mq.readers.push(ch)
+	i := mq.readers.push(ch)
 	select {
 	case <-ctx.Done():
-		mq.readers.remove(ch)
+		mq.readers.remove(i)
 		close(ch)
 		return nil, TimeoutError
 	case v := <-ch:
