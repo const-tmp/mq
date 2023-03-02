@@ -1,68 +1,86 @@
 package queue
 
 import (
+	"context"
+	"errors"
 	"sync"
+	"time"
 )
 
-type Service struct {
-	messages            []string
-	readers             []chan string
-	messageMu, readerMu sync.RWMutex
+var (
+	TimeoutError = errors.New("timeout")
+)
+
+type queue[T comparable] struct {
+	sync.Mutex
+	slice []T
 }
 
-func (s *Service) Put(message string) {
-	if s.readersLen() > 0 {
-		s.popReader() <- message
+func (q *queue[T]) push(v T) {
+	q.Lock()
+	q.slice = append(q.slice, v)
+	q.Unlock()
+}
+
+func (q *queue[T]) pop() (v T, ok bool) {
+	q.Lock()
+	defer q.Unlock()
+	if len(q.slice) == 0 {
 		return
 	}
-	s.appendMessage(message)
+	v, q.slice = q.slice[0], q.slice[1:]
+	ok = true
+	return
 }
 
-func (s *Service) Get() string {
-	if s.messagesLen() > 0 {
-		return s.popMessage()
+func (q *queue[T]) remove(v T) {
+	q.Lock()
+	defer q.Unlock()
+	for i, t := range q.slice {
+		if t == v {
+			q.slice = append(q.slice[:i], q.slice[i+1:]...)
+			return
+		}
 	}
-	ch := make(chan string)
-	s.appendReader(ch)
-	return <-ch
 }
 
-func (s *Service) messagesLen() int {
-	s.messageMu.RLock()
-	defer s.messageMu.RUnlock()
-	return len(s.messages)
+type MessageQueue[T comparable] struct {
+	messages *queue[T]
+	readers  *queue[chan T]
 }
 
-func (s *Service) appendMessage(message string) {
-	s.messageMu.Lock()
-	defer s.messageMu.Unlock()
-	s.messages = append(s.messages, message)
+func New[T comparable]() MessageQueue[T] {
+	return MessageQueue[T]{messages: new(queue[T]), readers: new(queue[chan T])}
 }
 
-func (s *Service) popMessage() string {
-	s.messageMu.Lock()
-	defer s.messageMu.Unlock()
-	message := s.messages[0]
-	s.messages = s.messages[1:]
-	return message
+func (mq MessageQueue[T]) Push(v T) {
+	if reader, ok := mq.readers.pop(); ok {
+		reader <- v
+		return
+	}
+	mq.messages.push(v)
 }
 
-func (s *Service) readersLen() int {
-	s.readerMu.RLock()
-	defer s.readerMu.RUnlock()
-	return len(s.readers)
-}
-
-func (s *Service) appendReader(ch chan string) {
-	s.readerMu.Lock()
-	defer s.readerMu.Unlock()
-	s.readers = append(s.readers, ch)
-}
-
-func (s *Service) popReader() chan string {
-	s.readerMu.Lock()
-	defer s.readerMu.Unlock()
-	ch := s.readers[0]
-	s.readers = s.readers[1:]
-	return ch
+func (mq MessageQueue[T]) Pop(timeout time.Duration) (*T, error) {
+	if v, ok := mq.messages.pop(); ok {
+		return &v, nil
+	}
+	var (
+		ctx    = context.Background()
+		cancel context.CancelFunc
+	)
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+	ch := make(chan T)
+	mq.readers.push(ch)
+	select {
+	case <-ctx.Done():
+		mq.readers.remove(ch)
+		close(ch)
+		return nil, TimeoutError
+	case v := <-ch:
+		return &v, nil
+	}
 }
