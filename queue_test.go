@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-const num = 10000
+const num = 1000000
 
 func TestMessageQueue_Push(t *testing.T) {
 	mq := new(MQ[int])
@@ -74,13 +74,13 @@ func BenchmarkMessageQueue_Pop(b *testing.B) {
 		mq.Push(i)
 	}
 	for i := 0; i < b.N; i++ {
-		mq.Pop(0)
+		_, _ = mq.Pop(0)
 	}
 }
 
 func BenchmarkMessageQueue_Pop2(b *testing.B) {
 	mq := new(MQ[int])
 	for i := 0; i < b.N; i++ {
-		mq.Pop(1)
+		_, _ = mq.Pop(1)
 	}
 }
