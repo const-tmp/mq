@@ -31,6 +31,9 @@ func (mq *MQ[T]) Pop(timeout time.Duration) (T, error) {
 		mq.Unlock()
 		return item.value, nil
 	}
+	ch := make(chan T)
+	i := mq.readers.push(ch)
+	mq.Unlock()
 	var (
 		ctx    = context.Background()
 		cancel context.CancelFunc
@@ -40,9 +43,6 @@ func (mq *MQ[T]) Pop(timeout time.Duration) (T, error) {
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
-	ch := make(chan T)
-	i := mq.readers.push(ch)
-	mq.Unlock()
 	select {
 	case <-ctx.Done():
 		i.expired = true
