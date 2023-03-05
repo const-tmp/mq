@@ -1,4 +1,4 @@
-package queue
+package mq
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 
 var TimeoutError = errors.New("timeout")
 
-type MessageQueue[T any] struct {
+type MQ[T any] struct {
 	sync.Mutex
 	messages fifo[T]
 	readers  fifo[chan T]
 }
 
-func (mq *MessageQueue[T]) Push(v T) {
+func (mq *MQ[T]) Push(v T) {
 	mq.Lock()
 	defer mq.Unlock()
 	if reader := mq.readers.pop(); reader != nil {
@@ -25,7 +25,7 @@ func (mq *MessageQueue[T]) Push(v T) {
 	mq.messages.push(v)
 }
 
-func (mq *MessageQueue[T]) Pop(timeout time.Duration) (T, error) {
+func (mq *MQ[T]) Pop(timeout time.Duration) (T, error) {
 	mq.Lock()
 	if item := mq.messages.pop(); item != nil {
 		mq.Unlock()

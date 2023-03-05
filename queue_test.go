@@ -1,4 +1,4 @@
-package queue
+package mq
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 const num = 10000
 
 func TestMessageQueue_Push(t *testing.T) {
-	mq := new(MessageQueue[int])
+	mq := new(MQ[int])
 	for i := 0; i < num; i++ {
 		mq.Push(i)
 	}
@@ -17,7 +17,7 @@ func TestMessageQueueBefore(t *testing.T) {
 	var (
 		v   int
 		err error
-		mq  = new(MessageQueue[int])
+		mq  = new(MQ[int])
 	)
 
 	go func() {
@@ -41,7 +41,7 @@ func TestMessageQueueBefore(t *testing.T) {
 }
 
 func TestMessageQueueAfter(t *testing.T) {
-	mq := new(MessageQueue[int])
+	mq := new(MQ[int])
 
 	for i := 1; i < num; i++ {
 		mq.Push(i)
@@ -62,14 +62,14 @@ func TestMessageQueueAfter(t *testing.T) {
 }
 
 func BenchmarkMessageQueue_Push(b *testing.B) {
-	mq := new(MessageQueue[int])
+	mq := new(MQ[int])
 	for i := 0; i < b.N; i++ {
 		mq.Push(i)
 	}
 }
 
 func BenchmarkMessageQueue_Pop(b *testing.B) {
-	mq := new(MessageQueue[int])
+	mq := new(MQ[int])
 	for i := 0; i < b.N; i++ {
 		mq.Push(i)
 	}
@@ -79,7 +79,7 @@ func BenchmarkMessageQueue_Pop(b *testing.B) {
 }
 
 func BenchmarkMessageQueue_Pop2(b *testing.B) {
-	mq := new(MessageQueue[int])
+	mq := new(MQ[int])
 	for i := 0; i < b.N; i++ {
 		mq.Pop(1)
 	}
