@@ -4,27 +4,38 @@ import (
 	"testing"
 )
 
-const num = 1000000
+const num = 10000000
+
+func TestMessageQueue_Push(t *testing.T) {
+	mq := New[int]()
+	for i := 0; i < num; i++ {
+		mq.Push(i)
+	}
+}
 
 func TestMessageQueueBefore(t *testing.T) {
-	mq := New[int]()
+	var (
+		v   int
+		err error
+		mq  = New[int]()
+	)
 
 	go func() {
-		for i := 0; i < num; i++ {
-			v, err := mq.Pop(0)
+		for i := 1; i < num; i++ {
+			v, err = mq.Pop(0)
 			if err != nil {
 				t.Errorf("%d error: %s", i, err)
 			}
-			if v == nil {
+			if v == 0 {
 				t.Errorf("%d result is nil", i)
 			}
-			if *v != i {
-				t.Errorf("want %d got %d", i, *v)
+			if v != i {
+				t.Errorf("want %d got %d", i, v)
 			}
 		}
 	}()
 
-	for i := 0; i < num; i++ {
+	for i := 1; i < num; i++ {
 		mq.Push(i)
 	}
 }
@@ -32,20 +43,20 @@ func TestMessageQueueBefore(t *testing.T) {
 func TestMessageQueueAfter(t *testing.T) {
 	mq := New[int]()
 
-	for i := 0; i < num; i++ {
+	for i := 1; i < num; i++ {
 		mq.Push(i)
 	}
 
-	for i := 0; i < num; i++ {
+	for i := 1; i < num; i++ {
 		v, err := mq.Pop(0)
 		if err != nil {
 			t.Errorf("%d error: %s", i, err)
 		}
-		if v == nil {
+		if v == 0 {
 			t.Errorf("%d result is nil", i)
 		}
-		if *v != i {
-			t.Errorf("want %d got %d", i, *v)
+		if v != i {
+			t.Errorf("want %d got %d", i, v)
 		}
 	}
 }
