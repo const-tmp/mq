@@ -28,3 +28,54 @@ func TestFifoExpiration(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkFifoPop1(b *testing.B) {
+	f := new(fifo[int])
+	for i := 0; i < b.N; i++ {
+		f.push(i)
+	}
+	for i := 0; i < b.N; i++ {
+		f.pop()
+	}
+}
+
+func BenchmarkFifoPop1Empty(b *testing.B) {
+	f := new(fifo[int])
+	for i := 0; i < b.N; i++ {
+		f.pop()
+	}
+}
+
+func BenchmarkFifoPop2(b *testing.B) {
+	f := new(fifo[int])
+	for i := 0; i < b.N; i++ {
+		f.push(i)
+	}
+	for i := 0; i < b.N; i++ {
+		f.pop2()
+	}
+}
+
+func BenchmarkFifoPop2Empty(b *testing.B) {
+	f := new(fifo[int])
+	for i := 0; i < b.N; i++ {
+		f.pop2()
+	}
+}
+
+func BenchmarkFifoPop3(b *testing.B) {
+	f := new(fifo[int])
+	for i := 0; i < b.N; i++ {
+		f.push(i)
+	}
+	for i := 0; i < b.N; i++ {
+		f.pop3()
+	}
+}
+
+func BenchmarkFifoPop3Empty(b *testing.B) {
+	f := new(fifo[int])
+	for i := 0; i < b.N; i++ {
+		f.pop3()
+	}
+}

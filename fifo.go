@@ -35,3 +35,25 @@ func (f *fifo[T]) pop() (i *item[T]) {
 	}
 	return
 }
+
+func (f *fifo[T]) pop2() (i *item[T]) {
+	for f.first != nil {
+		if !f.first.expired {
+			i, f.first = f.first, f.first.next
+			break
+		}
+		f.first = f.first.next
+	}
+	return
+}
+
+func (f *fifo[T]) pop3() (i *item[T]) {
+	for f.first != nil && f.first.expired {
+		f.first = f.first.next
+	}
+	if f.first == nil {
+		return
+	}
+	i, f.first = f.first, f.first.next
+	return
+}

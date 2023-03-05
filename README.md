@@ -6,7 +6,7 @@ go test -race github.com/nullc4t/mq
 ```
 # benchmarks
 ```
-go test -bench=. -run=^# 
+go test -bench=. -run=^# -count=5
 ```
 # usage
 ```

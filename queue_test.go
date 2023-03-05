@@ -78,7 +78,7 @@ func BenchmarkMessageQueue_Pop(b *testing.B) {
 	}
 }
 
-func BenchmarkMessageQueue_Pop2(b *testing.B) {
+func BenchmarkMessageQueue_PopTimout(b *testing.B) {
 	mq := new(MQ[int])
 	for i := 0; i < b.N; i++ {
 		_, _ = mq.Pop(1)
