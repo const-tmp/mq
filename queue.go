@@ -45,6 +45,8 @@ func (mq *MQ[T]) Pop(timeout time.Duration) (T, error) {
 	}
 	select {
 	case <-ctx.Done():
+		mq.Lock()
+		defer mq.Unlock()
 		i.expired = true
 		close(ch)
 		return v, TimeoutError
